@@ -13,7 +13,6 @@
 	</repositories>
 
 
-
 	<dependencies>
 		<dependency>
 			<groupId>com.datastax.cassandra</groupId>
