@@ -1,0 +1,39 @@
+#!/bin/sh
+#
+# Runs at the end of git flow release finish
+#
+# Positional arguments:
+# $1    The version (including the version prefix)
+# $2    The origin remote
+# $3    The full branch name (including the release prefix)
+#
+
+VERSION=$1
+ORIGIN=$2
+BRANCH=$3
+
+fromPom() {
+  mvn -f $1 help:evaluate -Dexpression=$2 | sed -n -e '/^\[.*\]/ !{ p; }'
+}
+
+pom=./pom.xml
+version=`fromPom $pom project.version`
+
+
+if [[ -z "$JABBA_DEVELOP_BRANCH_NEW" ]]
+then
+  # Change the version of the pom.xml from develop branch only if the release is not a hotfix
+  git checkout $DEVELOP_BRANCH
+  find . -name pom.xml -type f -not -path "*target*" \
+    -exec sed -i '' -e "s#<version>$version</version>#<version>$VERSION-SNAPSHOT</version>#g" {} \; 2>/dev/null
+  git commit -a -m "snapshot: $VERSION-SNAPSHOT"
+  git push origin $DEVELOP_BRANCH
+else
+  # Replace the develop branch's value with the earlier value
+  sed -i .bak "s|develop = ${JABBA_DEVELOP_BRANCH_NEW}|develop = ${JABBA_DEVELOP_BRANCH_OLD}|g" $JABBA_HOME/.git/config
+  unset JABBA_DEVELOP_BRANCH_NEW
+  unset JABBA_DEVELOP_BRANCH_OLD
+fi
+
+# To terminate the git-flow action, return a non-zero exit code.
+exit 0
